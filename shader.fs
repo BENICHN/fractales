@@ -5,6 +5,7 @@ out vec4 gl_FragColor;
 
 precision highp float;
 
+// paramètres
 const int N = 3;
 const int r2 = 36;
 const vec4 colors[] = vec4[](vec4(0.172,0.243,0.313,0),vec4(0.086,0.627,0.521,0),vec4(0.752,0.223,0.168,0),vec4(0.557,0.267,0.678,0));
@@ -22,6 +23,7 @@ uniform vec2 magnets[N];
 uniform float zoom;
 uniform vec2 offset;
 
+// pour trouver l'indice du plus petit élémant d'un tableau
 int mini(float a[N])
 {
     int r = -1;
@@ -42,6 +44,7 @@ int mini(float a[N])
 float sq(float x) { return x * x; }
 float nsq(vec2 v) { return dot(v,v); }
 
+// fonction accélération(vitesse, position)
 vec2 getAccel(vec2 v, vec2 p)
 {
     vec2 m;
@@ -55,6 +58,7 @@ vec2 getAccel(vec2 v, vec2 p)
     return s - R * v - C * p;
 }
 
+// algorithme de Euler explicite
 vec2 predict(vec2 p0)
 {
     vec2 p = p0;
@@ -80,6 +84,7 @@ vec2 predict(vec2 p0)
     return p;
 }
 
+// algorithme de Runge-Kutta d'ordre 4
 vec2 rk4(vec2 p0)
 {
     vec2 p = p0;
@@ -113,6 +118,7 @@ vec2 rk4(vec2 p0)
     return p;
 }
 
+// pour passer des coordonnées écran aux coordonnées math
 vec2 screenToMath(vec2 v) { return zoom * (v + offset); }
 vec2 mathToScreen(vec2 v) { v /= zoom; return (v - offset); }
 
@@ -121,6 +127,7 @@ void main()
     vec2 xy = vec2(gl_FragCoord.x, gl_FragCoord.y);
     vec2 p0 = screenToMath(xy);
 
+    // coloration des aimants en violet
     for (int i = 0; i < N; i++)
     {
         if (nsq(xy-mathToScreen(magnets[i])) <= r2)
@@ -130,6 +137,7 @@ void main()
         }
     }
 
+    // coloration des lignes noires
     vec2 zxy = mathToScreen(vec2(0,0));
     if (abs(xy.x - zxy.x) < 1 || abs(xy.y - zxy.y) < 1)
     {
@@ -137,12 +145,12 @@ void main()
         return;
     }
 
-    vec2 pf = predict(p0);
+    vec2 pf = predict(p0); // simulation
     float dists[N];
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < N; i++) // calcul de l'aimant le plus proche
     {
         dists[i] = nsq(pf - magnets[i]);
     }
     int im = mini(dists);
-    gl_FragColor = colors[im];
+    gl_FragColor = colors[im]; // choix de la couleur en conséquence
 }
