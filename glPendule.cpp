@@ -155,7 +155,7 @@ static void RenderSceneCB()
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glDrawArrays(GL_QUADS, 0, 4);
 
     glDisableVertexAttribArray(0);
 
@@ -164,15 +164,12 @@ static void RenderSceneCB()
 
 static void CreateVertexBuffer()
 {
-    vec3 Vertices[6];
+    vec3 Vertices[4];
 
     Vertices[0] = {-1.0f, -1.0f, 0.0f};
     Vertices[1] = {1.0f, -1.0f, 0.0f};
     Vertices[2] = {1.0f, 1.0f, 0.0f};
-
-    Vertices[3] = {-1.0f, -1.0f, 0.0f};
-    Vertices[4] = {1.0f, 1.0f, 0.0f};
-    Vertices[5] = {-1.0f, 1.0f, 0.0f};
+    Vertices[3] = {-1.0f, 1.0f, 0.0f};
 
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
