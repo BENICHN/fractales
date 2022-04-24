@@ -16,7 +16,7 @@ const float zf = 1.15;
 const int r2 = 36;
 
 int magneti = -1;
-GLfloat magnets[] = {0, 2, 2, 0, -2, -1};
+GLfloat magnets[] = {1, 0, -0.5, 0.866, -0.5, -0.866};
 
 GLuint program;
 GLuint VBO;

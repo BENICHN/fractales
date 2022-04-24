@@ -8,7 +8,12 @@ precision highp float;
 const int N = 3;
 const int r2 = 36;
 const vec4 colors[] = vec4[](vec4(0.172,0.243,0.313,0),vec4(0.086,0.627,0.521,0),vec4(0.752,0.223,0.168,0),vec4(0.557,0.267,0.678,0));
-const float h = 0.1;
+const float T = 25;
+const int n = 1000;
+const int mul = 1000;
+const int st = n/mul;
+const float tol = 0.5;
+const float h = T/n;
 const float R = 0.15;
 const float C = 0.2;
 const float d2 = 0.04;
@@ -50,7 +55,7 @@ vec2 getAccel(vec2 v, vec2 p)
     return s - R * v - C * p;
 }
 
-vec2 predict(vec2 p0, int st, int mul, float tol)
+vec2 predict(vec2 p0)
 {
     vec2 p = p0;
     vec2 pt;
@@ -65,6 +70,39 @@ vec2 predict(vec2 p0, int st, int mul, float tol)
             a = getAccel(v, p);
             v += h * a;
             p += h * v;
+        }
+        if (nsq(p - pt) < tol)
+        {
+            return p;
+        }
+    }
+
+    return p;
+}
+
+vec2 rk4(vec2 p0)
+{
+    vec2 p = p0;
+    vec2 pt;
+    vec2 v = vec2(0,0);
+    
+    vec2 k1;
+    vec2 k2;
+    vec2 k3;
+    vec2 k4;
+
+    for (int i = 0; i < st; i++)
+    {
+        pt = p;
+        for (int i = 0; i < mul; i++)
+        {
+            k1 = getAccel(v, p);
+            k2 = getAccel(v + 0.5*h*k1, p + 0.5*h*v);
+            k3 = getAccel(v + 0.5*h*k2, p + 0.5*h*v + 0.25*sq(h)*k1);
+            k4 = getAccel(v + h*k3, p + h*v + 0.5*sq(h)*k2);
+
+            p += h*v + sq(h)/6*(k1+k2+k3);
+            v += h/6*(k1+2.*k2+2.*k3+k4);
         }
         if (nsq(p - pt) < tol)
         {
@@ -99,7 +137,7 @@ void main()
         return;
     }
 
-    vec2 pf = predict(p0, 10, 100, 1.);
+    vec2 pf = predict(p0);
     float dists[N];
     for (int i = 0; i < N; i++)
     {
