@@ -4,7 +4,7 @@
 
 ## Building
 First install dependencies :
-`sudo apt-get install freeglut3-dev libglew-dew libglm-dev`
+`sudo apt-get install freeglut3-dev libglew-dev libglm-dev`
 Then run :
 `./build.sh`
 in the project's folder.
