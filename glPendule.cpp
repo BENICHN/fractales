@@ -18,8 +18,8 @@ int magneti = -1;
 const float zf = 1.15;
 const int r2 = 36;
 
-const int N = 3;
-GLfloat magnets[2 * N] = {
+const int Nmax = 3;
+GLfloat magnets[2 * Nmax] = {
     1, 0,
     -0.5, 0.866,
     -0.5, -0.866};
@@ -31,6 +31,26 @@ GLuint zoomLocation;
 GLuint offsetLocation;
 GLuint fbo;
 GLuint tex;
+
+GLuint d2Location;
+GLfloat fs_d = 0.2;
+GLuint CLocation;
+GLfloat fs_C = 0.2;
+GLuint RLocation;
+GLfloat fs_R = 0.15;
+GLuint hLocation;
+GLfloat fs_T = 25.0;
+GLuint NLocation;
+GLint fs_N = Nmax;
+GLuint nLocation;
+GLint fs_n = 1000;
+
+GLuint useRK4Location;
+GLboolean fs_useRK4 = false;
+GLuint useLinesLocation;
+GLboolean fs_useLines = false;
+GLuint usePointsLocation;
+GLboolean fs_usePoints = true;
 
 bool isFractalValid;
 ImVec2 fractalSize;
@@ -120,16 +140,14 @@ float mathToScreen(float v, float zoom, float offset)
 
 void passiveMove(int x, int y)
 {
-    ImGuiIO &io = ImGui::GetIO();
-    io.AddMousePosEvent(x, y);
+    ImGui_ImplGLUT_MotionFunc(x, y);
 
     mouseX = x;
     mouseY = y;
 }
 void move(int x, int y)
 {
-    ImGuiIO &io = ImGui::GetIO();
-    io.AddMousePosEvent(x, y);
+    ImGui_ImplGLUT_MotionFunc(x, y);
 
     if (isMouseCapturedByFractal)
     {
@@ -148,7 +166,7 @@ void move(int x, int y)
             glGetUniformfv(program, zoomLocation, &zoom);
             magnets[2 * magneti] += zoom * dx;
             magnets[2 * magneti + 1] -= zoom * dy;
-            glUniform2fv(magnetsLocation, N, magnets);
+            glUniform2fv(magnetsLocation, Nmax, magnets);
         }
 
         isFractalValid = false;
@@ -180,7 +198,7 @@ void mouse(int button, int state, int x, int y)
             switch (state)
             {
             case GLUT_DOWN:
-                for (int i = 0; i < N; i++)
+                for (int i = 0; i < fs_N; i++)
                 {
                     glGetUniformfv(program, offsetLocation, offset);
                     glGetUniformfv(program, zoomLocation, &zoom);
@@ -246,11 +264,15 @@ void mouse(int button, int state, int x, int y)
 }
 void keyboard(unsigned char key, int x, int y)
 {
+    ImGui_ImplGLUT_KeyboardFunc(key, x, y);
+
     switch (key)
     {
     case 'z':
         break;
-
+    case 'f':
+        glutFullScreenToggle();
+        break;
     default:
         break;
     }
@@ -285,6 +307,19 @@ void createFB(int w, int h)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void updateVariables()
+{
+    glUniform1i(useRK4Location, fs_useRK4);
+    glUniform1i(useLinesLocation, fs_useLines);
+    glUniform1i(usePointsLocation, fs_usePoints);
+    glUniform1i(NLocation, fs_N);
+    glUniform1i(nLocation, fs_n);
+    glUniform1f(hLocation, fs_T / fs_n);
+    glUniform1f(RLocation, fs_R);
+    glUniform1f(CLocation, fs_C);
+    glUniform1f(d2Location, fs_d * fs_d);
+}
+
 void renderFractal()
 {
     if (isFractalValid)
@@ -300,23 +335,27 @@ void renderFractal()
     isFractalValid = true;
 }
 
-static bool show_demo_window = true;
-static bool show_another_window = true;
 static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 void my_display_code()
 {
     ImGui::Begin("Fractale");
     {
         ImGui::BeginChild("Fractale Render");
-        fractalSize = ImGui::GetWindowSize();
-        if (!isFractalValid) createFB(fractalSize.x, fractalSize.y);
+        ImVec2 size = ImGui::GetWindowSize();
+        if (fractalSize.x != size.x || fractalSize.y != size.y)
+        {
+            isFractalValid = false;
+            fractalSize = size;
+        }
+        if (!isFractalValid)
+            createFB(fractalSize.x, fractalSize.y);
 
         screenPositionAbsolute = ImGui::GetItemRectMin();
-        cout << screenPositionAbsolute.x << "," << screenPositionAbsolute.y << endl;
 
         isMouseCapturedByFractal = ImGui::IsItemActive();
         isFractalHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
 
+        updateVariables();
         renderFractal();
 
         ImGui::Image((ImTextureID)tex, fractalSize, ImVec2(0, 1), ImVec2(1, 0));
@@ -324,42 +363,35 @@ void my_display_code()
     }
     ImGui::End();
 
-    // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-    if (show_demo_window)
-        ImGui::ShowDemoWindow(&show_demo_window);
-
-    // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
+    ImGui::Begin("Paramètres");
     {
-        static float f = 0.0f;
-        static int counter = 0;
+        if (ImGui::InputInt("Nombre d'aimants", &fs_N, 1, Nmax))
+        {
+            GLint N;
+            glGetUniformiv(program, NLocation, &N);
 
-        ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
-
-        ImGui::Text("This is some useful text.");          // Display some text (you can use a format strings too)
-        ImGui::Checkbox("Demo Window", &show_demo_window); // Edit bools storing our window open/close state
-        ImGui::Checkbox("Another Window", &show_another_window);
-
-        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
-        ImGui::ColorEdit3("clear color", (float *)&clear_color); // Edit 3 floats representing a color
-
-        if (ImGui::Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
-            counter++;
-        ImGui::SameLine();
-        ImGui::Text("counter = %d", counter);
-
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-        ImGui::End();
+            fs_N = clamp(fs_N, 1, Nmax);
+            if (N != fs_N)
+                isFractalValid = false;
+        }
+        if (ImGui::DragInt("n", &fs_n, 10.0f, 0, 100000, "%.3f", ImGuiSliderFlags_Logarithmic))
+            isFractalValid = false;
+        if (ImGui::DragFloat("T", &fs_T, 0.1f, 0.0f, 300.0f, "%.3f", ImGuiSliderFlags_Logarithmic))
+            isFractalValid = false;
+        if (ImGui::DragFloat("R", &fs_R, 0.01f, 0.0f, 20.0f, "%.3f", ImGuiSliderFlags_Logarithmic))
+            isFractalValid = false;
+        if (ImGui::DragFloat("C", &fs_C, 0.01f, 0.0f, 20.0f, "%.3f", ImGuiSliderFlags_Logarithmic))
+            isFractalValid = false;
+        if (ImGui::DragFloat("d", &fs_d, 0.01f, 0.0f, 20.0f, "%.3f", ImGuiSliderFlags_Logarithmic))
+            isFractalValid = false;
+        if (ImGui::Checkbox("RK4", (bool *)&fs_useRK4))
+            isFractalValid = false;
+        if (ImGui::Checkbox("Linges", (bool *)&fs_useLines))
+            isFractalValid = false;
+        if (ImGui::Checkbox("Points", (bool *)&fs_usePoints))
+            isFractalValid = false;
     }
-
-    // 3. Show another simple window.
-    if (show_another_window)
-    {
-        ImGui::Begin("Another Window", &show_another_window); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-        ImGui::Text("Hello from another window!");
-        if (ImGui::Button("Close Me"))
-            show_another_window = false;
-        ImGui::End();
-    }
+    ImGui::End();
 }
 
 void display()
@@ -476,7 +508,7 @@ void compileShaders()
         printf("Error getting uniform location of 'magnets'\n");
         exit(1);
     }
-    glUniform2fv(magnetsLocation, N, magnets);
+    glUniform2fv(magnetsLocation, Nmax, magnets);
 
     zoomLocation = glGetUniformLocation(program, "zoom");
     if (zoomLocation == -1)
@@ -493,6 +525,71 @@ void compileShaders()
         exit(1);
     }
     glUniform2f(offsetLocation, -glutGet(GLUT_WINDOW_WIDTH) / 2, -glutGet(GLUT_WINDOW_HEIGHT) / 2);
+
+    nLocation = glGetUniformLocation(program, "n");
+    if (nLocation == -1)
+    {
+        printf("Error getting uniform location of 'n'\n");
+        exit(1);
+    }
+
+    NLocation = glGetUniformLocation(program, "N");
+    if (NLocation == -1)
+    {
+        printf("Error getting uniform location of 'N'\n");
+        exit(1);
+    }
+
+    hLocation = glGetUniformLocation(program, "h");
+    if (hLocation == -1)
+    {
+        printf("Error getting uniform location of 'h'\n");
+        exit(1);
+    }
+
+    RLocation = glGetUniformLocation(program, "R");
+    if (RLocation == -1)
+    {
+        printf("Error getting uniform location of 'R'\n");
+        exit(1);
+    }
+
+    CLocation = glGetUniformLocation(program, "C");
+    if (CLocation == -1)
+    {
+        printf("Error getting uniform location of 'C'\n");
+        exit(1);
+    }
+
+    d2Location = glGetUniformLocation(program, "d2");
+    if (d2Location == -1)
+    {
+        printf("Error getting uniform location of 'd2'\n");
+        exit(1);
+    }
+
+    useRK4Location = glGetUniformLocation(program, "useRK4");
+    if (useRK4Location == -1)
+    {
+        printf("Error getting uniform location of 'useRK4'\n");
+        exit(1);
+    }
+
+    useLinesLocation = glGetUniformLocation(program, "useLines");
+    if (useLinesLocation == -1)
+    {
+        printf("Error getting uniform location of 'useLines'\n");
+        exit(1);
+    }
+
+    usePointsLocation = glGetUniformLocation(program, "usePoints");
+    if (usePointsLocation == -1)
+    {
+        printf("Error getting uniform location of 'usePoints'\n");
+        exit(1);
+    }
+
+    updateVariables();
 }
 
 int main(int argc, char **argv)
@@ -544,7 +641,7 @@ int main(int argc, char **argv)
     glutPassiveMotionFunc(passiveMove);
     glutMotionFunc(move);
     glutMouseFunc(mouse);
-    // glutKeyboardFunc(keyboard);
+    glutKeyboardFunc(keyboard);
 
     glutMainLoop();
 

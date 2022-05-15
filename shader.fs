@@ -6,28 +6,30 @@ out vec4 fragColor;
 precision highp float;
 
 // paramètres
-const int N = 3;
+const int Nmax = 3;
 const int r2 = 36;
-const vec4 colors[] = vec4[](vec4(0.172,0.243,0.313,0),vec4(0.086,0.627,0.521,0),vec4(0.752,0.223,0.168,0),vec4(0.557,0.267,0.678,0));
-const float T = 25;
-const int n = 1000;
-const int mul = 1000;
-const int st = n/mul;
-const float tol = 0.5;
-const float h = T/n;
-const float R = 0.15;
-const float C = 0.2;
-const float d2 = 0.04;
+const vec4 colors[Nmax+1] = vec4[](vec4(0.172,0.243,0.313,0),vec4(0.086,0.627,0.521,0),vec4(0.752,0.223,0.168,0),vec4(0.557,0.267,0.678,0));
 
-uniform vec2 magnets[N];
+uniform int N;
+uniform vec2 magnets[Nmax];
 uniform float zoom;
 uniform vec2 offset;
 
+uniform float h;
+uniform int n;
+uniform float d2;
+uniform float C;
+uniform float R;
+
+uniform bool useRK4;
+uniform bool useLines;
+uniform bool usePoints;
+
 // pour trouver l'indice du plus petit élémant d'un tableau
-int mini(float a[N])
+int mini(int size, float a[Nmax])
 {
     int r = -1;
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < size; i++)
     {
         if (r == -1)
         {
@@ -62,23 +64,14 @@ vec2 getAccel(vec2 v, vec2 p)
 vec2 predict(vec2 p0)
 {
     vec2 p = p0;
-    vec2 pt;
     vec2 v = vec2(0,0);
     vec2 a;
 
-    for (int i = 0; i < st; i++)
+    for (int i = 0; i < n; i++)
     {
-        pt = p;
-        for (int i = 0; i < mul; i++)
-        {
-            a = getAccel(v, p);
-            v += h * a;
-            p += h * v;
-        }
-        if (nsq(p - pt) < tol)
-        {
-            return p;
-        }
+        a = getAccel(v, p);
+        v += h * a;
+        p += h * v;
     }
 
     return p;
@@ -96,23 +89,15 @@ vec2 rk4(vec2 p0)
     vec2 k3;
     vec2 k4;
 
-    for (int i = 0; i < st; i++)
+    for (int i = 0; i < n; i++)
     {
-        pt = p;
-        for (int i = 0; i < mul; i++)
-        {
-            k1 = getAccel(v, p);
-            k2 = getAccel(v + 0.5*h*k1, p + 0.5*h*v);
-            k3 = getAccel(v + 0.5*h*k2, p + 0.5*h*v + 0.25*sq(h)*k1);
-            k4 = getAccel(v + h*k3, p + h*v + 0.5*sq(h)*k2);
-
-            p += h*v + sq(h)/6*(k1+k2+k3);
-            v += h/6*(k1+2.*k2+2.*k3+k4);
-        }
-        if (nsq(p - pt) < tol)
-        {
-            return p;
-        }
+        k1 = getAccel(v, p);
+        k2 = getAccel(v + 0.5*h*k1, p + 0.5*h*v);
+        k3 = getAccel(v + 0.5*h*k2, p + 0.5*h*v + 0.25*sq(h)*k1);
+        k4 = getAccel(v + h*k3, p + h*v + 0.5*sq(h)*k2);
+        
+        p += h*v + sq(h)/6*(k1+k2+k3);
+        v += h/6*(k1+2.*k2+2.*k3+k4);
     }
 
     return p;
@@ -127,30 +112,34 @@ void main()
     vec2 xy = vec2(gl_FragCoord.x, gl_FragCoord.y);
     vec2 p0 = screenToMath(xy);
 
-    // coloration des aimants en violet
-    for (int i = 0; i < N; i++)
+    if (usePoints) // coloration des aimants en violet
     {
-        if (nsq(xy-mathToScreen(magnets[i])) <= r2)
+        for (int i = 0; i < N; i++)
         {
-            fragColor = colors[N];
+            if (nsq(xy-mathToScreen(magnets[i])) <= r2)
+            {
+                fragColor = colors[Nmax];
+                return;
+            }
+        }
+    }
+
+    if (useLines) // coloration des lignes noires
+    {
+        vec2 zxy = mathToScreen(vec2(0,0));
+        if (abs(xy.x - zxy.x) < 1 || abs(xy.y - zxy.y) < 1)
+        {
+            fragColor = vec4(0,0,0,0);
             return;
         }
     }
 
-    // coloration des lignes noires
-    vec2 zxy = mathToScreen(vec2(0,0));
-    if (abs(xy.x - zxy.x) < 1 || abs(xy.y - zxy.y) < 1)
-    {
-        fragColor = vec4(0,0,0,0);
-        return;
-    }
-
-    vec2 pf = predict(p0); // simulation
-    float dists[N];
+    vec2 pf = useRK4 ? rk4(p0) : predict(p0); // simulation
+    float dists[Nmax];
     for (int i = 0; i < N; i++) // calcul de l'aimant le plus proche
     {
         dists[i] = nsq(pf - magnets[i]);
     }
-    int im = mini(dists);
+    int im = mini(N, dists);
     fragColor = colors[im]; // choix de la couleur en conséquence
 }
