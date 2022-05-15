@@ -1,7 +1,7 @@
-#version 330 core
+#version 400 core
 
 in vec4 gl_FragCoord;
-out vec4 gl_FragColor;
+out vec4 fragColor;
 
 precision highp float;
 
@@ -132,7 +132,7 @@ void main()
     {
         if (nsq(xy-mathToScreen(magnets[i])) <= r2)
         {
-            gl_FragColor = colors[N];
+            fragColor = colors[N];
             return;
         }
     }
@@ -141,7 +141,7 @@ void main()
     vec2 zxy = mathToScreen(vec2(0,0));
     if (abs(xy.x - zxy.x) < 1 || abs(xy.y - zxy.y) < 1)
     {
-        gl_FragColor = vec4(0,0,0,0);
+        fragColor = vec4(0,0,0,0);
         return;
     }
 
@@ -152,5 +152,5 @@ void main()
         dists[i] = nsq(pf - magnets[i]);
     }
     int im = mini(dists);
-    gl_FragColor = colors[im]; // choix de la couleur en conséquence
+    fragColor = colors[im]; // choix de la couleur en conséquence
 }

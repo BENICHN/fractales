@@ -16,10 +16,14 @@ const float zf = 1.15;
 const int r2 = 36;
 
 int magneti = -1;
-GLfloat magnets[] = {1, 0, -0.5, 0.866, -0.5, -0.866};
+GLfloat magnets[2*N] = {
+    1, 0,
+    -0.5, 0.866,
+    -0.5, -0.866
+};
 
 GLuint program;
-GLuint VBO;
+GLuint vbo;
 GLuint magnetsLocation;
 GLuint zoomLocation;
 GLuint offsetLocation;
@@ -27,10 +31,31 @@ GLuint offsetLocation;
 int mouseX;
 int mouseY;
 
-void passiveMove(int x, int y)
+bool readFile(const char *pFileName, string &outFile)
 {
-    mouseX = x;
-    mouseY = y;
+    ifstream f(pFileName);
+
+    bool ret = false;
+
+    if (f.is_open())
+    {
+        string line;
+        while (getline(f, line))
+        {
+            outFile.append(line);
+            outFile.append("\n");
+        }
+
+        f.close();
+
+        ret = true;
+    }
+    else
+    {
+        cout << "error while reading file " << pFileName;
+    }
+
+    return ret;
 }
 
 float screenToMath(float v, float zoom, float offset) { return zoom * (v + offset); }
@@ -40,6 +65,13 @@ float mathToScreen(float v, float zoom, float offset)
     return (v - offset);
 }
 
+// control functions
+
+void passiveMove(int x, int y)
+{
+    mouseX = x;
+    mouseY = y;
+}
 void move(int x, int y)
 {
     int dx = x - mouseX;
@@ -65,7 +97,6 @@ void move(int x, int y)
 
     glutPostRedisplay();
 }
-
 void mouse(int button, int state, int x, int y)
 {
     GLfloat zoom;
@@ -132,7 +163,6 @@ void mouse(int button, int state, int x, int y)
         break;
     }
 }
-
 void keyboard(unsigned char key, int x, int y)
 {
     switch (key)
@@ -145,11 +175,13 @@ void keyboard(unsigned char key, int x, int y)
     }
 }
 
-static void RenderSceneCB()
+
+
+void renderSceneCB()
 {
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
     glEnableVertexAttribArray(0);
 
@@ -161,110 +193,62 @@ static void RenderSceneCB()
 
     glutSwapBuffers();
 }
-
-static void CreateVertexBuffer()
+void createVertexBuffer()
 {
-    vec3 Vertices[4];
+    vec3 vertices[4] = {
+        {-1.0f, -1.0f, 0.0f},
+        {1.0f, -1.0f, 0.0f},
+        {1.0f, 1.0f, 0.0f},
+        {-1.0f, 1.0f, 0.0f}
+    };
 
-    Vertices[0] = {-1.0f, -1.0f, 0.0f};
-    Vertices[1] = {1.0f, -1.0f, 0.0f};
-    Vertices[2] = {1.0f, 1.0f, 0.0f};
-    Vertices[3] = {-1.0f, 1.0f, 0.0f};
-
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 }
-
-static void AddShader(GLuint program, const char *pShaderText, GLenum ShaderType)
+void addShader(GLuint program, const char *pShaderText, GLenum shaderType)
 {
-    GLuint ShaderObj = glCreateShader(ShaderType);
-
-    if (ShaderObj == 0)
-    {
-        fprintf(stderr, "Error creating shader type %d\n", ShaderType);
-        exit(0);
-    }
+    GLuint sho = glCreateShader(shaderType);
+    assert(sho != 0);
 
     const GLchar *p[1];
     p[0] = pShaderText;
 
-    GLint Lengths[1];
-    Lengths[0] = (GLint)strlen(pShaderText);
+    GLint lengths[1];
+    lengths[0] = (GLint)strlen(pShaderText);
 
-    glShaderSource(ShaderObj, 1, p, Lengths);
+    glShaderSource(sho, 1, p, lengths);
 
-    glCompileShader(ShaderObj);
+    glCompileShader(sho);
 
     GLint success;
-    glGetShaderiv(ShaderObj, GL_COMPILE_STATUS, &success);
+    glGetShaderiv(sho, GL_COMPILE_STATUS, &success);
 
     if (!success)
     {
         GLchar InfoLog[1024];
-        glGetShaderInfoLog(ShaderObj, 1024, NULL, InfoLog);
-        fprintf(stderr, "Error compiling shader type %d: '%s'\n", ShaderType, InfoLog);
+        glGetShaderInfoLog(sho, 1024, NULL, InfoLog);
+        fprintf(stderr, "Error compiling shader type %d: '%s'\n", shaderType, InfoLog);
         exit(1);
     }
 
-    glAttachShader(program, ShaderObj);
+    glAttachShader(program, sho);
 }
 
 const char *pVSFileName = "shader.vs";
 const char *pFSFileName = "shader.fs";
-
-bool ReadFile(const char *pFileName, string &outFile)
-{
-    ifstream f(pFileName);
-
-    bool ret = false;
-
-    if (f.is_open())
-    {
-        string line;
-        while (getline(f, line))
-        {
-            outFile.append(line);
-            outFile.append("\n");
-        }
-
-        f.close();
-
-        ret = true;
-    }
-    else
-    {
-        cout << "error while reading file " << pFileName;
-    }
-
-    return ret;
-}
-
-static void CompileShaders()
+void compileShaders()
 {
     program = glCreateProgram();
+    assert (program != 0);
 
-    if (program == 0)
-    {
-        fprintf(stderr, "Error creating shader program\n");
-        exit(1);
-    }
+    string vs, fs;
 
-    std::string vs, fs;
+    if (!readFile(pVSFileName, vs)) { exit(1); };
+    addShader(program, vs.c_str(), GL_VERTEX_SHADER);
 
-    if (!ReadFile(pVSFileName, vs))
-    {
-        exit(1);
-    };
-
-    AddShader(program, vs.c_str(), GL_VERTEX_SHADER);
-
-    if (!ReadFile(pFSFileName, fs))
-    {
-        exit(1);
-    };
-
-    AddShader(program, fs.c_str(), GL_FRAGMENT_SHADER);
+    if (!readFile(pFSFileName, fs)) { exit(1); };
+    addShader(program, fs.c_str(), GL_FRAGMENT_SHADER);
 
     GLint Success = 0;
     GLchar ErrorLog[1024] = {0};
@@ -289,6 +273,8 @@ static void CompileShaders()
     }
 
     glUseProgram(program);
+
+    // linking to uniform variables
 
     magnetsLocation = glGetUniformLocation(program, "magnets");
     if (magnetsLocation == -1)
@@ -319,8 +305,8 @@ int main(int argc, char **argv)
 {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-    int width = 1920;
-    int height = 1080;
+    int width = 512;
+    int height = 512;
     glutInitWindowSize(width, height);
 
     int x = 200;
@@ -340,11 +326,11 @@ int main(int argc, char **argv)
     GLclampf Red = 0.0f, Green = 0.0f, Blue = 0.0f, Alpha = 0.0f;
     glClearColor(Red, Green, Blue, Alpha);
 
-    CreateVertexBuffer();
+    createVertexBuffer();
 
-    CompileShaders();
+    compileShaders();
 
-    glutDisplayFunc(RenderSceneCB);
+    glutDisplayFunc(renderSceneCB);
     glutPassiveMotionFunc(passiveMove);
     glutMotionFunc(move);
     glutMouseFunc(mouse);
