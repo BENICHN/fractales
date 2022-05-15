@@ -1,6 +1,6 @@
 # glPendule
 
-![screenshot](https://user-images.githubusercontent.com/26910885/167294833-23b95575-4989-461e-81fe-4af1fb4b6760.png)
+![screenshot](https://user-images.githubusercontent.com/26910885/168485398-a70c2a5d-b9a7-4a87-b235-144bc9ac46fb.png)
 
 ## Building
 First install dependencies :
