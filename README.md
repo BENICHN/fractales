@@ -1,6 +1,7 @@
-# glPendule
+# Fractales
 
 ![screenshot](https://user-images.githubusercontent.com/26910885/168485398-a70c2a5d-b9a7-4a87-b235-144bc9ac46fb.png)
+![screenshot](https://user-images.githubusercontent.com/26910885/169265077-d2148c2a-c97e-474d-80db-0611f1668075.png)
 
 ## Building
 First install dependencies :
