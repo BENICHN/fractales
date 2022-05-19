@@ -38,21 +38,11 @@ GLuint offsetLocation;
 GLuint fbo;
 GLuint tex;
 
-GLuint d2Location;
-GLfloat fs_d = 0.2;
-GLuint CLocation;
-GLfloat fs_C = 0.2;
-GLuint RLocation;
-GLfloat fs_R = 0.15;
-GLuint hLocation;
-GLfloat fs_T = 25.0;
 GLuint NLocation;
-GLint fs_N = 3;
+GLint fs_N = Nmax;
 GLuint nLocation;
 GLint fs_n = 1000;
 
-GLuint useRK4Location;
-GLboolean fs_useRK4 = false;
 GLuint useLinesLocation;
 GLboolean fs_useLines = false;
 GLuint usePointsLocation;
@@ -315,15 +305,10 @@ void createFB(int w, int h)
 
 void updateVariables()
 {
-    glUniform1i(useRK4Location, fs_useRK4);
     glUniform1i(useLinesLocation, fs_useLines);
     glUniform1i(usePointsLocation, fs_usePoints);
     glUniform1i(NLocation, fs_N);
     glUniform1i(nLocation, fs_n);
-    glUniform1f(hLocation, fs_T / fs_n);
-    glUniform1f(RLocation, fs_R);
-    glUniform1f(CLocation, fs_C);
-    glUniform1f(d2Location, fs_d * fs_d);
 }
 
 void renderFractal()
@@ -381,16 +366,6 @@ void my_display_code()
                 isFractalValid = false;
         }
         if (ImGui::DragInt("n", &fs_n, 10.0f, 0, 100000, "%.3f", ImGuiSliderFlags_Logarithmic))
-            isFractalValid = false;
-        if (ImGui::DragFloat("T", &fs_T, 0.1f, 0.0f, 300.0f, "%.3f", ImGuiSliderFlags_Logarithmic))
-            isFractalValid = false;
-        if (ImGui::DragFloat("R", &fs_R, 0.01f, 0.0f, 20.0f, "%.3f", ImGuiSliderFlags_Logarithmic))
-            isFractalValid = false;
-        if (ImGui::DragFloat("C", &fs_C, 0.01f, 0.0f, 20.0f, "%.3f", ImGuiSliderFlags_Logarithmic))
-            isFractalValid = false;
-        if (ImGui::DragFloat("d", &fs_d, 0.01f, 0.0f, 20.0f, "%.3f", ImGuiSliderFlags_Logarithmic))
-            isFractalValid = false;
-        if (ImGui::Checkbox("RK4", (bool *)&fs_useRK4))
             isFractalValid = false;
         if (ImGui::Checkbox("Linges", (bool *)&fs_useLines))
             isFractalValid = false;
@@ -462,7 +437,7 @@ void addShader(GLuint program, const char *pShaderText, GLenum shaderType)
 }
 
 const char *pVSFileName = "shader.vs";
-const char *pFSFileName = "shaderPendule.fs";
+const char *pFSFileName = "shaderNewton.fs";
 void compileShaders()
 {
     program = glCreateProgram();
@@ -546,41 +521,6 @@ void compileShaders()
         exit(1);
     }
 
-    hLocation = glGetUniformLocation(program, "h");
-    if (hLocation == -1)
-    {
-        printf("Error getting uniform location of 'h'\n");
-        exit(1);
-    }
-
-    RLocation = glGetUniformLocation(program, "R");
-    if (RLocation == -1)
-    {
-        printf("Error getting uniform location of 'R'\n");
-        exit(1);
-    }
-
-    CLocation = glGetUniformLocation(program, "C");
-    if (CLocation == -1)
-    {
-        printf("Error getting uniform location of 'C'\n");
-        exit(1);
-    }
-
-    d2Location = glGetUniformLocation(program, "d2");
-    if (d2Location == -1)
-    {
-        printf("Error getting uniform location of 'd2'\n");
-        exit(1);
-    }
-
-    useRK4Location = glGetUniformLocation(program, "useRK4");
-    if (useRK4Location == -1)
-    {
-        printf("Error getting uniform location of 'useRK4'\n");
-        exit(1);
-    }
-
     useLinesLocation = glGetUniformLocation(program, "useLines");
     if (useLinesLocation == -1)
     {
@@ -608,7 +548,7 @@ int main(int argc, char **argv)
     int x = 200;
     int y = 100;
     glutInitWindowPosition(x, y);
-    int win = glutCreateWindow("Le Pendule");
+    int win = glutCreateWindow("Le Newton");
     printf("window id: %d\n", win);
 
     // Must be done after glut is initialized!

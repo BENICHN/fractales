@@ -6,5 +6,9 @@
 First install dependencies :
 `sudo apt-get install freeglut3-dev libglew-dev libglm-dev`
 Then run :
-`./build.sh`
+`./build.sh fractal_name`
 in the project's folder.
+
+Avaliable fractals are :
+- `Pendule`
+- `Newton`
