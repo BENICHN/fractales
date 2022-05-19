@@ -1,4 +1,4 @@
-#version 400 core
+#version 460 core
 
 in vec4 gl_FragCoord;
 out vec4 fragColor;
@@ -6,9 +6,20 @@ out vec4 fragColor;
 precision highp float;
 
 // paramètres
-const int Nmax = 3;
+const int Nmax = 8;
 const int r2 = 36;
-const vec4 colors[Nmax+1] = vec4[](vec4(0.172,0.243,0.313,0),vec4(0.086,0.627,0.521,0),vec4(0.752,0.223,0.168,0),vec4(0.557,0.267,0.678,0));
+//const vec4 colors[Nmax+1] = vec4[](vec4(0.172,0.243,0.313,0),vec4(0.086,0.627,0.521,0),vec4(0.752,0.223,0.168,0),vec4(0.557,0.267,0.678,0));
+const vec4 colors[] = vec4[](
+    vec4(0,0.149,0.258,0),
+    vec4(0.517,0,0.196,0),
+    vec4(0.898,0.584,0,0),
+    vec4(0.898,0.854,0.854,0),
+    vec4(0.023,0.654,0.490,0),
+    vec4(0.580,0.482,0.827,0),
+    vec4(0.278,0.294,0.141,0),
+    vec4(0.898,0.454,0.737,0),
+    vec4(0.007,0.015,0.058,0)
+);
 
 uniform int N;
 uniform vec2 magnets[Nmax];

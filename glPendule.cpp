@@ -18,11 +18,17 @@ int magneti = -1;
 const float zf = 1.15;
 const int r2 = 36;
 
-const int Nmax = 3;
+const int Nmax = 8;
 GLfloat magnets[2 * Nmax] = {
+    -1, -1,
+    -1, 1,
     1, 0,
-    -0.5, 0.866,
-    -0.5, -0.866};
+    0, -1,
+    -1, 0,
+    1, -1,
+    0, 1,
+    1, 1,
+};
 
 GLuint program;
 GLuint vbo;
@@ -41,7 +47,7 @@ GLfloat fs_R = 0.15;
 GLuint hLocation;
 GLfloat fs_T = 25.0;
 GLuint NLocation;
-GLint fs_N = Nmax;
+GLint fs_N = 3;
 GLuint nLocation;
 GLint fs_n = 1000;
 
