@@ -546,7 +546,7 @@ int main(int argc, char **argv)
     int x = 200;
     int y = 100;
     glutInitWindowPosition(x, y);
-    int win = glutCreateWindow("Le Newton");
+    int win = glutCreateWindow("Le JM");
     printf("window id: %d\n", win);
 
     // Must be done after glut is initialized!

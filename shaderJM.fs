@@ -178,7 +178,7 @@ void main()
     }
 
     int r = useJulia ? julia(p0) : mandelbrot(p0); // simulation
-    float hue = log(float(r))/log(float(n));
+    float hue = float(r)/float(n);
     float saturation = 1.0;
     float value;
     float t;
